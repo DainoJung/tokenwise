@@ -1,0 +1,38 @@
+{
+  "name": "tokenwise",
+  "version": "0.1.0",
+  "description": "Spend less, agent more. Token optimization SDK for Agentic AI.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "tokenwise": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test dist/**/*.test.js",
+    "proxy": "node dist/cli.js proxy"
+  },
+  "keywords": [
+    "llm",
+    "token",
+    "optimization",
+    "openai",
+    "agent",
+    "agentic-ai",
+    "cost-reduction",
+    "proxy"
+  ],
+  "author": "Daino",
+  "license": "MIT",
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.2",
+    "express": "^5.2.1",
+    "openai": "^6.34.0",
+    "tiktoken": "^1.0.22"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}
