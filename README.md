@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/tokenwise"><img src="https://img.shields.io/npm/v/tokenwise?style=flat-square&color=black" alt="npm"></a>
+  <a href="https://www.npmjs.com/package/@daino/tokenwise"><img src="https://img.shields.io/npm/v/@daino/tokenwise?style=flat-square&color=black" alt="npm"></a>
   <a href="https://github.com/DainoJung/tokenwise/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-black?style=flat-square" alt="license"></a>
   <a href="https://github.com/DainoJung/tokenwise"><img src="https://img.shields.io/github/stars/DainoJung/tokenwise?style=flat-square&color=black" alt="stars"></a>
 </p>
@@ -53,13 +53,13 @@ TokenWise sits between your app and the LLM API. It optimizes every request tran
 ## Quick Start
 
 ```bash
-npm install tokenwise
+npm install @daino/tokenwise
 ```
 
 ### Option 1: SDK — same API, automatic optimization
 
 ```typescript
-import { TokenWise } from 'tokenwise';
+import { TokenWise } from '@daino/tokenwise';
 
 const tw = new TokenWise({
   apiKey: process.env.OPENAI_API_KEY,
@@ -151,7 +151,7 @@ const tw = new TokenWise({
 Use any module standalone:
 
 ```typescript
-import { SkillCompressor, ModelRouter, ContextDiffer } from 'tokenwise';
+import { SkillCompressor, ModelRouter, ContextDiffer } from '@daino/tokenwise';
 
 // Compress tools independently
 const compressor = new SkillCompressor({ maxTools: 10 });
