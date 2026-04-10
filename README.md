@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@daino/tokenwise"><img src="https://img.shields.io/npm/v/@daino/tokenwise?style=flat-square&color=black" alt="npm"></a>
+  <a href="https://pypi.org/project/tokenwise-ai/"><img src="https://img.shields.io/pypi/v/tokenwise-ai?style=flat-square&color=black" alt="pypi"></a>
   <a href="https://github.com/DainoJung/tokenwise/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-black?style=flat-square" alt="license"></a>
   <a href="https://github.com/DainoJung/tokenwise"><img src="https://img.shields.io/github/stars/DainoJung/tokenwise?style=flat-square&color=black" alt="stars"></a>
 </p>
@@ -53,7 +54,8 @@ TokenWise sits between your app and the LLM API. It optimizes every request tran
 ## Quick Start
 
 ```bash
-npm install @daino/tokenwise
+npm install @daino/tokenwise   # Node.js / TypeScript
+pip install tokenwise-ai       # Python
 ```
 
 ### Option 1: SDK — same API, automatic optimization
@@ -144,6 +146,19 @@ const tw = new TokenWise({
 
   verbose: true,
 });
+```
+
+### Option 3: Python SDK
+
+```python
+from tokenwise import TokenWise
+
+tw = TokenWise(api_key="sk-...")
+response = tw.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(tw.print_savings())
 ```
 
 ## Anthropic SDK
@@ -238,7 +253,7 @@ const { text } = compactor.compact(verboseLLMResponse);
 - [x] Smart Wake Gate — idle agent suppression
 - [x] Output Compactor — response format optimization
 - [x] Web dashboard for cost analytics
-- [x] Python SDK (`pip install tokenwise`)
+- [x] Python SDK (`pip install tokenwise-ai`)
 
 ---
 

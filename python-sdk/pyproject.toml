@@ -3,18 +3,17 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tokenwise"
+name = "tokenwise-ai"
 version = "0.1.0"
 description = "Spend less, agent more. Token optimization SDK for Agentic AI."
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [{ name = "Daino" }]
 keywords = ["llm", "token", "optimization", "openai", "agent", "agentic-ai"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Libraries",
 ]
