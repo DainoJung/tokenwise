@@ -146,12 +146,50 @@ const tw = new TokenWise({
 });
 ```
 
+## Anthropic SDK
+
+```typescript
+import { TokenWiseAnthropic } from '@daino/tokenwise';
+
+const tw = new TokenWiseAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  verbose: true,
+});
+
+const response = await tw.messages.create({
+  model: 'claude-sonnet-4-6',
+  max_tokens: 1024,
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+## Streaming
+
+```typescript
+const stream = await tw.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [{ role: 'user', content: 'Tell me a story' }],
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}
+```
+
+## Web Dashboard
+
+Start the proxy and visit `http://localhost:8787/dashboard` for a real-time cost analytics UI.
+
 ## Advanced: Individual Modules
 
 Use any module standalone:
 
 ```typescript
-import { SkillCompressor, ModelRouter, ContextDiffer } from '@daino/tokenwise';
+import {
+  SkillCompressor, ModelRouter, ContextDiffer,
+  SharedStateStore, SmartWakeGate, OutputCompactor,
+} from '@daino/tokenwise';
 
 // Compress tools independently
 const compressor = new SkillCompressor({ maxTools: 10 });
@@ -160,6 +198,20 @@ const { tools, stats } = compressor.optimize(myTools, userMessage);
 // Route models independently
 const router = new ModelRouter();
 const { model, complexity } = router.route('gpt-4o', messages, tools);
+
+// Share context across agents
+const store = new SharedStateStore();
+store.set('system-prompt', longSystemPrompt, 'agent-1');
+const cached = store.get('system-prompt'); // reuse without resending
+
+// Gate agent activation
+const gate = new SmartWakeGate();
+gate.register({ id: 'search', name: 'Search Agent', triggerKeywords: ['search', 'find'], toolNames: ['web_search'] });
+const activeAgents = gate.evaluate('search for the latest news');
+
+// Compact LLM output for downstream agents
+const compactor = new OutputCompactor();
+const { text } = compactor.compact(verboseLLMResponse);
 ```
 
 ---
@@ -180,13 +232,13 @@ const { model, complexity } = router.route('gpt-4o', messages, tools);
 - [x] Model Router — complexity-based routing
 - [x] Cost Tracker — real-time monitoring
 - [x] Proxy Server — zero code change mode
-- [ ] Streaming support
-- [ ] Anthropic API native support
-- [ ] Shared State Store — cross-agent context sharing
-- [ ] Smart Wake Gate — idle agent suppression
-- [ ] Output Compactor — response format optimization
-- [ ] Web dashboard for cost analytics
-- [ ] Python SDK (`pip install tokenwise`)
+- [x] Streaming support
+- [x] Anthropic API native support
+- [x] Shared State Store — cross-agent context sharing
+- [x] Smart Wake Gate — idle agent suppression
+- [x] Output Compactor — response format optimization
+- [x] Web dashboard for cost analytics
+- [x] Python SDK (`pip install tokenwise`)
 
 ---
 

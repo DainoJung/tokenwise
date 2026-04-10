@@ -14,6 +14,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import { TokenWise } from '../client';
 import type { TokenWiseConfig } from '../types';
+import { getDashboardHTML } from './dashboard';
 
 export interface ProxyServerOptions {
   port?: number;
@@ -47,6 +48,11 @@ export function createProxyServer(options: ProxyServerOptions = {}) {
     }
     return clients.get(apiKey)!;
   }
+
+  // Dashboard
+  app.get('/dashboard', (_req: Request, res: Response) => {
+    res.type('text/html').send(getDashboardHTML());
+  });
 
   // Health check
   app.get('/health', (_req: Request, res: Response) => {
@@ -90,6 +96,18 @@ export function createProxyServer(options: ProxyServerOptions = {}) {
 
     try {
       const client = getClient(apiKey);
+      if (req.body.stream) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        const stream = await client.chat.completions.create({ ...req.body, stream: true });
+        for await (const chunk of stream as AsyncIterable<any>) {
+          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
       const result = await client.chat.completions.create(req.body);
       res.json(result);
     } catch (err: any) {
@@ -120,10 +138,10 @@ export function createProxyServer(options: ProxyServerOptions = {}) {
   });
 
   // Catch-all for unhandled routes
-  app.use((_req: Request, res: Response) => {
+  app.all('/{*path}', (_req: Request, res: Response) => {
     res.status(404).json({
       error: {
-        message: 'TokenWise proxy: endpoint not supported. Supported: POST /v1/chat/completions, GET /v1/models, GET /v1/tokenwise/savings',
+        message: 'TokenWise proxy: endpoint not supported. Supported: POST /v1/chat/completions, GET /v1/models, GET /v1/tokenwise/savings, GET /dashboard',
         type: 'not_found',
       },
     });
@@ -149,6 +167,7 @@ export function createProxyServer(options: ProxyServerOptions = {}) {
 ║    GET  /v1/models                       ║
 ║    GET  /v1/tokenwise/savings            ║
 ║    GET  /v1/tokenwise/report             ║
+║    GET  /dashboard                       ║
 ╚══════════════════════════════════════════╝
 `);
           resolve();

@@ -23,8 +23,10 @@
  * Then set `base_url` to `http://localhost:8787/v1` in your existing code.
  */
 
-// Main client
+// Main clients
 export { TokenWise } from './client';
+export { TokenWiseAnthropic } from './anthropic-client';
+export type { AnthropicConfig } from './anthropic-client';
 
 // Individual modules (for advanced usage)
 export { ContextDiffer } from './modules/context-differ';
@@ -37,6 +39,15 @@ export { ModelRouter } from './modules/model-router';
 export type { ModelRouterOptions } from './modules/model-router';
 
 export { CostTracker } from './modules/cost-tracker';
+
+export { SharedStateStore } from './modules/shared-state-store';
+export type { SharedStateStoreOptions } from './modules/shared-state-store';
+
+export { SmartWakeGate } from './modules/smart-wake-gate';
+export type { SmartWakeGateOptions, AgentProfile } from './modules/smart-wake-gate';
+
+export { OutputCompactor } from './modules/output-compactor';
+export type { OutputCompactorOptions } from './modules/output-compactor';
 
 // Proxy server
 export { createProxyServer } from './proxy/server';

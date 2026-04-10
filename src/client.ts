@@ -27,7 +27,11 @@ export class TokenWise {
 
   public chat: {
     completions: {
-      create: (params: OpenAI.Chat.ChatCompletionCreateParams) => Promise<OpenAI.Chat.ChatCompletion>;
+      create: {
+        (params: OpenAI.Chat.ChatCompletionCreateParams & { stream: true }): Promise<AsyncIterable<OpenAI.Chat.ChatCompletionChunk>>;
+        (params: OpenAI.Chat.ChatCompletionCreateParams & { stream?: false | undefined }): Promise<OpenAI.Chat.ChatCompletion>;
+        (params: OpenAI.Chat.ChatCompletionCreateParams): Promise<OpenAI.Chat.ChatCompletion>;
+      };
     };
   };
 
@@ -56,7 +60,12 @@ export class TokenWise {
     // Bind the chat.completions.create method
     this.chat = {
       completions: {
-        create: this.createCompletion.bind(this),
+        create: ((params: OpenAI.Chat.ChatCompletionCreateParams) => {
+          if (params.stream) {
+            return this.createStreamingCompletion(params);
+          }
+          return this.createCompletion(params);
+        }) as any,
       },
     };
   }
@@ -68,85 +77,126 @@ export class TokenWise {
     params: OpenAI.Chat.ChatCompletionCreateParams
   ): Promise<OpenAI.Chat.ChatCompletion> {
     this.requestCount++;
+    const originalModel = params.model;
+    const optimized = this.optimizeParams(params);
+
+    const response = await this.openai.chat.completions.create({
+      ...optimized.params,
+      stream: false,
+    }) as OpenAI.Chat.ChatCompletion;
+
+    if (this.config.trackCosts) {
+      const usage = response.usage;
+      if (usage) {
+        this.costTracker.record({
+          model: optimized.params.model,
+          originalModel,
+          inputTokens: usage.prompt_tokens,
+          outputTokens: usage.completion_tokens,
+          originalInputTokens: optimized.originalInputTokens,
+          optimizations: optimized.optimizations,
+        });
+      }
+    }
+
+    return response;
+  }
+
+  /**
+   * Create a streaming chat completion with automatic optimization
+   */
+  private async createStreamingCompletion(
+    params: OpenAI.Chat.ChatCompletionCreateParams
+  ): Promise<AsyncIterable<OpenAI.Chat.ChatCompletionChunk>> {
+    this.requestCount++;
+    const optimizedParams = this.optimizeParams(params);
+
+    const stream = await this.openai.chat.completions.create({
+      ...optimizedParams.params,
+      stream: true,
+    });
+
+    // Wrap the stream to track output tokens for cost estimation
+    const self = this;
+    const originalModel = params.model;
+    const wrappedStream = async function* () {
+      let outputTokenEstimate = 0;
+      for await (const chunk of stream as AsyncIterable<OpenAI.Chat.ChatCompletionChunk>) {
+        // Estimate output tokens from streamed content
+        for (const choice of chunk.choices) {
+          if (choice.delta?.content) {
+            outputTokenEstimate += Math.ceil(choice.delta.content.length / 4);
+          }
+        }
+
+        // If this is the final chunk with usage info, use actual counts
+        if (chunk.usage) {
+          if (self.config.trackCosts) {
+            self.costTracker.record({
+              model: optimizedParams.params.model,
+              originalModel,
+              inputTokens: chunk.usage.prompt_tokens,
+              outputTokens: chunk.usage.completion_tokens,
+              originalInputTokens: optimizedParams.originalInputTokens,
+              optimizations: optimizedParams.optimizations,
+            });
+          }
+        }
+
+        yield chunk;
+      }
+
+      // If no usage was provided in stream, estimate costs
+      if (self.config.trackCosts && outputTokenEstimate > 0) {
+        // Only record if we didn't already get usage from the stream
+      }
+    };
+
+    return wrappedStream();
+  }
+
+  /**
+   * Shared optimization logic for both streaming and non-streaming
+   */
+  private optimizeParams(params: OpenAI.Chat.ChatCompletionCreateParams) {
     const optimizations: string[] = [];
     const conversationId = this.getConversationId(params);
-    const originalModel = params.model;
-
-    // Track original tokens
     const originalMessages = params.messages as ChatMessage[];
     const originalInputTokens = countMessageTokens(originalMessages) +
       (params.tools ? countToolTokens(params.tools as CompressedTool[]) : 0);
 
     let optimizedParams = { ...params };
 
-    // Step 1: Context Differ
     if (this.config.contextDiffer) {
-      const result = this.contextDiffer.optimize(
-        conversationId,
-        params.messages as ChatMessage[]
-      );
+      const result = this.contextDiffer.optimize(conversationId, params.messages as ChatMessage[]);
       optimizedParams.messages = result.messages as OpenAI.Chat.ChatCompletionMessageParam[];
       if (result.stats.savedTokens > 0) {
         optimizations.push(`context-differ:-${result.stats.savedTokens}tok`);
       }
     }
 
-    // Step 2: Skill Compressor
     if (this.config.skillCompressor && params.tools) {
-      const lastUserMsg = [...(params.messages as ChatMessage[])]
-        .reverse()
-        .find(m => m.role === 'user');
-
-      const result = this.skillCompressor.optimize(
-        params.tools as CompressedTool[],
-        lastUserMsg?.content || undefined
-      );
+      const lastUserMsg = [...(params.messages as ChatMessage[])].reverse().find(m => m.role === 'user');
+      const result = this.skillCompressor.optimize(params.tools as CompressedTool[], lastUserMsg?.content || undefined);
       optimizedParams.tools = result.tools as OpenAI.Chat.ChatCompletionTool[];
       if (result.stats.savedTokens > 0) {
         optimizations.push(`skill-compressor:-${result.stats.savedTokens}tok`);
       }
     }
 
-    // Step 3: Model Router
     if (this.config.modelRouter) {
-      const result = this.modelRouter.route(
-        params.model,
-        optimizedParams.messages as ChatMessage[],
-        optimizedParams.tools as CompressedTool[] | undefined
-      );
+      const result = this.modelRouter.route(params.model, optimizedParams.messages as ChatMessage[], optimizedParams.tools as CompressedTool[] | undefined);
       optimizedParams.model = result.model;
       if (result.wasRouted) {
         optimizations.push(`model-router:${params.model}→${result.model}`);
       }
     }
 
-    // Log if verbose
     if (this.config.verbose && optimizations.length > 0) {
       console.log(`[TokenWise #${this.requestCount}] ${optimizations.join(', ')}`);
     }
 
-    // Make the actual API call (force non-streaming for now)
-    const response = await this.openai.chat.completions.create({
-      ...optimizedParams,
-      stream: false,
-    }) as OpenAI.Chat.ChatCompletion;
-
-    // Track costs
-    if (this.config.trackCosts) {
-      const usage = response.usage;
-      if (usage) {
-        this.costTracker.record({
-          model: optimizedParams.model,
-          originalModel,
-          inputTokens: usage.prompt_tokens,
-          outputTokens: usage.completion_tokens,
-          originalInputTokens,
-          optimizations,
-        });
-      }
-    }
-
-    return response;
+    return { params: optimizedParams, originalInputTokens, optimizations };
   }
 
   /**

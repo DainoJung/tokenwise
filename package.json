@@ -8,7 +8,9 @@
     "dist/",
     "src/",
     "examples/",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "bin": {
     "tokenwise": "dist/cli.js"
@@ -17,7 +19,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "node --test dist/**/*.test.js",
-    "proxy": "node dist/cli.js proxy"
+    "proxy": "node dist/cli.js proxy",
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "llm",
@@ -40,13 +43,13 @@
     "url": "https://github.com/DainoJung/tokenwise/issues"
   },
   "dependencies": {
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.5.2",
     "express": "^5.2.1",
     "openai": "^6.34.0",
     "tiktoken": "^1.0.22"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.2",
     "typescript": "^6.0.2"
   }
 }
