@@ -1,0 +1,11 @@
+python-sdk/
+src/**/*.test.ts
+.github/
+.claude/
+.omc/
+.DS_Store
+coverage/
+.nyc_output/
+*.tsbuildinfo
+SHIP-PLAN.md
+claude-wake.sh

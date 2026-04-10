@@ -1,6 +1,6 @@
 {
   "name": "@daino/tokenwise",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Spend less, agent more. Token optimization SDK for Agentic AI.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
